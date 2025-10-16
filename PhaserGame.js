@@ -32,6 +32,7 @@ function preload() {
 }
 
 function create() { 
+    clearAllElements.call(this);
     //sets up main menu
     this.background = this.add.image(400, 300, 'background'); 
     this.OptionButton = createCircleButton(this, 400, 500, 'OptionButton',100).setInteractive();
@@ -40,7 +41,7 @@ function create() {
     this.Level3 = createCircleButton(this, 600, 300, 'Victorian',120).setInteractive();
     
 
-    this.OptionButton.on('pointerdown', () => Options.call(this,gameState.playerName));
+        this.OptionButton.on('pointerdown', () => Options.call(this,gameState.playerName,0));
     this.Level2.on('pointerdown', () => Level_2.call(this,gameState.playerName));
     this.Level1.on('pointerdown', () => Level_1.call(this,gameState.playerName));
     this.Level3.on('pointerdown', () => Level_3.call(this,gameState.playerName));
@@ -51,12 +52,10 @@ function update() {
 }
 function Level_1(PlayerName) {
     //Removes all main menu items
-    this.Level1.visible = false;
-    this.Level2.visible = false;
-    this.Level3.visible = false;
-    this.OptionButton.visible = false;
+    clearAllElements.call(this);
     //checks if player name has been set if not calls function to set it
     if (PlayerName == " " || PlayerName == undefined){
+        clearAllElements.call(this);
         PlayerName= PickPlayerName.call(this,1);
         return;
 
@@ -64,7 +63,7 @@ function Level_1(PlayerName) {
     //adds level 1 background and menu button
     this.add.image(400, 300, 'BG1.1');
     this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
-    this.MenuButton.on('pointerdown', () => Menu.call(this,));
+    this.MenuButton.on('pointerdown', () => Menu.call(this,1));
 
 }
 function Level_2(PlayerName){
@@ -82,7 +81,7 @@ function Level_2(PlayerName){
     //adds level 2 background and menu button
     this.add.image(400, 300, 'BG2.1');
     this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
-    this.MenuButton.on('pointerdown', () => Menu.call(this,));
+    this.MenuButton.on('pointerdown', () => Menu.call(this,2));
 }
     
 function Level_3(PlayerName ){
@@ -100,50 +99,85 @@ function Level_3(PlayerName ){
     //adds level 3 background and menu button
     this.add.image(400, 300, 'BG3.1');
     this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
-    this.MenuButton.on('pointerdown', () => Menu.call(this,));
+    this.MenuButton.on('pointerdown', () => Menu.call(this,3));
 }
 
-function Options(PlayerName) {
+
+function Options(PlayerName,id) {
+    // remember where Options was opened from so sub-screens can return correctly
+    gameState.optionsReturnId = id;
+    gameState.optionsReturnPlayerName = PlayerName;
+
     // Removes all main menu items
     this.OptionButton.visible = false;
     this.Level1.visible = false;
     this.Level2.visible = false;
     this.Level3.visible = false;
     //adds options menu background and exit button
+    this.add.image(400, 300, 'background');
+    // Draw a black rectangle as a background for the text
     const graphics = this.add.graphics();
     graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
     graphics.fillRect(200, 100, 400, 400);
     this.Exit = this.add.image(560, 120, 'ExitButton').setInteractive();
-    this.Exit.on('pointerdown', () => { // When exit button is clicked
-        this.Exit.visible = false;
-        this.Option1.visible = false;
-        this.Option2.visible = false
-        this.text.visible = false;
-        graphics.destroy();
+      this.Exit.on('pointerdown', () => { // When exit button is clicked
+        clearAllElements.call(this);
+        // If Options was opened from an in-game Menu (id > 0), return to that Menu
+        if (typeof id === 'number' && id > 0) {
+            Menu.call(this, id);
+            return;
+        }
+        // otherwise return to main menu
         create.call(this);
     });
     this.text = this.add.text(350, 100, 'Options', { fontSize: '28px', fill: '#fff', align: 'center' });
     this.Option1 = this.text = this.add.text(250, 200, 'Player Name:'+ gameState.playerName, { fontSize: '24px', fill: '#fff' }).setInteractive();
-    this.Option1.on('pointerdown', () => PickPlayerName.call(this,0));
+    // pass the same id so PickPlayerName can return to the correct place
+    this.Option1.on('pointerdown', () => PickPlayerName.call(this, id));
     this.Option2 = this.add.text(250, 300,'Menu Opacity: '+(gameState.Opacity*100)+'%',{fontSize: '28px', fill: '#fff', align: 'center' } ).setInteractive();
-    this.Option2.on('pointerdown', () => {
-        gameState.Opacity = SetOpacity.call(this)
+    // pass the same id so setOpacity can return correctly
+    this.Option2.on('pointerdown', () =>  {
+        clearAllElements.call(this);
+        setOpacity.call(this, id);
     });
-
-    
-
-    
-        
 }
-function Menu() {
+function Menu(id) {
+    // clear any previous UI the scene may have left
+    clearAllElements.call(this);
+
+    // background
     this.add.image(400, 300, 'background');
-    this.MenuButton.visible = false;
+
+    // hide the in-level menu button if present
+    if (this.MenuButton) this.MenuButton.visible = false;
+
+    // use stored opacity or a sensible default
+    const opacity = (typeof gameState.Opacity === 'number') ? gameState.Opacity : 0.7;
     const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
+    graphics.fillStyle(0x000000, opacity);
     graphics.fillRect(200, 100, 400, 400);
-    this.text = this.add.text(350, 100, 'Menu', { fontSize: '28px', fill: '#fff', align: 'center' });
+     // Exit button — return based on the id that opened the Menu
+    this.Exit = this.add.image(560, 120, 'ExitButton').setInteractive();
+    this.Exit.on('pointerdown', () => {
+        clearAllElements.call(this);
+        // If Menu was opened from a level (id > 0) go back to that level
+        if (typeof id === 'number' && id > 0) {
+            if (id === 1) { Level_1.call(this, gameState.playerName); return; }
+            if (id === 2) { Level_2.call(this, gameState.playerName); return; }
+            if (id === 3) { Level_3.call(this, gameState.playerName); return; }
+        }
+        // otherwise go back to main menu
+        create.call(this);
+    });
+    this.text = this.add.text(355, 100, 'Menu', { fontSize: '28px', fill: '#fff', align: 'center' });
+    this.option1 = this.add.text(250, 200, 'Options', { fontSize: '24px', fill: '#fff' }).setInteractive();
+    this.option1.on('pointerdown', () => {
+        clearAllElements.call(this);
+        Options.call(this, gameState.playerName, id);
+    });
 }
-function PickPlayerName(ID){
+
+function PickPlayerName(returnToId){
     // Display background and prompt text
     this.add.image(400, 300, 'background');
     // Draw a black rectangle as a background for the text
@@ -158,12 +192,14 @@ function PickPlayerName(ID){
     inputElement.type = 'text';
     inputElement.id = 'nameInput';
     inputElement.style.position = 'absolute';
+    inputElement.setAttribute('data-phaser-ui','true');
     inputElement.style.left = (this.sys.game.canvas.offsetLeft + 275) + 'px';
     inputElement.style.top = (this.sys.game.canvas.offsetTop + 280) + 'px';
     inputElement.style.width = '250px';
     inputElement.style.fontSize = '20px';
     inputElement.style.zIndex = 1000;
     document.body.appendChild(inputElement);
+    inputElement.focus();
      // Get banned names as an array (lowercase, trimmed)
     const bannedNamesRaw = this.cache.text.get('bannedNames');
     const bannedNames = bannedNamesRaw
@@ -191,20 +227,28 @@ function PickPlayerName(ID){
             document.body.removeChild(inputElement);
             graphics.destroy();
             promptText.destroy();
+            clearAllElements.call(this);
 
-            // Now go to the correct level/menu based on ID
-            if (ID == 0){
-                Options.call(this, playerName);
+          // Return to the correct place based on returnToId
+            if (returnToId === 0){
+                // return to Options (called from in-game Menu). Keep the same return id so options can exit properly.
+                Options.call(this, playerName, 0);
+                return;
             }
-            if (ID == 1){
+            if (returnToId === 1){
                 Level_1.call(this, playerName);
+                return;
             }
-            if (ID == 2){
+            if (returnToId === 2){
                 Level_2.call(this, playerName);
+                return;
             }
-            if (ID == 3){
+            if (returnToId === 3){
                 Level_3.call(this, playerName);
+                return;
             }
+            // default return to Options (main menu)
+            Options.call(this, playerName, 0);
         }
     });
 }
@@ -228,8 +272,10 @@ function createCircleButton(scene, x, y, key, diameter) {
     return image;
 }
 
-function setOpacity(){
-        // Draw a black rectangle as a background for the text
+function setOpacity(fromId){
+    // Display background and prompt text
+    this.add.image(400, 300, 'background');
+    // Draw a black rectangle as a background for the text
     const graphics = this.add.graphics();
     graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
     graphics.fillRect(100, 200, 600, 120); 
@@ -241,26 +287,45 @@ function setOpacity(){
     inputElement.type = 'text';
     inputElement.id = 'opacityInput';
     inputElement.style.position = 'absolute';
+    inputElement.setAttribute('data-phaser-ui','true');
     inputElement.style.left = (this.sys.game.canvas.offsetLeft + 275) + 'px';
     inputElement.style.top = (this.sys.game.canvas.offsetTop + 280) + 'px';
     inputElement.style.width = '250px';
     inputElement.style.fontSize = '20px';
     inputElement.style.zIndex = 1000;
     document.body.appendChild(inputElement);
+    inputElement.focus();
 
-    inputElement.addEventListener('keydown', (event) => {
+ inputElement.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             let Opacity = inputElement.value.trim();
             let OpacityNum = Number(Opacity);
-            if (OpacityNum < 0 || OpacityNum > 100 || isNaN(OpacityNum) || OpacityNum.includes('.') || OpacityNum.includes('-') ) {
-                promptText.setText('It must be a interger between 0 and 100');
+            // Validate numeric, range and integer (no '.' or '-' in the string)
+            if (Number.isNaN(OpacityNum) || OpacityNum < 0 || OpacityNum > 100 || Opacity.includes('.') || Opacity.includes('-')) {
+                promptText.setText('It must be an integer between 0 and 100');
                 return;
             }
-            // Valid name
-            gameState.Opacity = Opacity/100;
-            document.body.removeChild(inputElement);
+            // Save numeric opacity and clean up
+            gameState.Opacity = OpacityNum / 100;
+            if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
             graphics.destroy();
             promptText.destroy();
+            clearAllElements.call(this);
+            // return to Options and provide the same fromId so exit works
+            Options.call(this, gameState.playerName, fromId);
         }
     });
+}
+function clearAllElements() {
+    // Remove scene input listeners
+    if (this.input && this.input.removeAllListeners) this.input.removeAllListeners();
+
+    // Remove HTML inputs the scene might have created (tagged with data-phaser-ui or known IDs)
+    const ids = ['nameInput', 'opacityInput'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    // Remove any elements explicitly tagged when created
+    document.querySelectorAll('[data-phaser-ui]').forEach(el => el.remove());
 }
