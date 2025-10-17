@@ -46,10 +46,7 @@ function create() {
     this.Level1.on('pointerdown', () => Level_1.call(this,gameState.playerName));
     this.Level3.on('pointerdown', () => Level_3.call(this,gameState.playerName));
 }
-function update() {
-    
-
-}
+function update() {}
 function Level_1(PlayerName) {
     //Removes all main menu items
     clearAllElements.call(this);
@@ -131,10 +128,12 @@ function Options(PlayerName,id) {
         create.call(this);
     });
     this.text = this.add.text(350, 100, 'Options', { fontSize: '28px', fill: '#fff', align: 'center' });
-    this.Option1 = this.text = this.add.text(250, 200, 'Player Name:'+ gameState.playerName, { fontSize: '24px', fill: '#fff' }).setInteractive();
+    this.Option1 = this.text = this.add.text(250, 200, 'Player Name:'+ gameState.playerName, 
+        { fontSize: '24px', fill: '#fff' }).setInteractive();
     // pass the same id so PickPlayerName can return to the correct place
     this.Option1.on('pointerdown', () => PickPlayerName.call(this, id));
-    this.Option2 = this.add.text(250, 300,'Menu Opacity: '+(gameState.Opacity*100)+'%',{fontSize: '28px', fill: '#fff', align: 'center' } ).setInteractive();
+    this.Option2 = this.add.text(250, 300,'Menu Opacity: '+(gameState.Opacity*100)+'%',
+    {fontSize: '28px', fill: '#fff', align: 'center' } ).setInteractive();
     // pass the same id so setOpacity can return correctly
     this.Option2.on('pointerdown', () =>  {
         clearAllElements.call(this);
