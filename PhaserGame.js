@@ -27,11 +27,14 @@ function preload() {
     this.load.image('MenuButton', 'Assets/buttons/Menu.png');
     this.load.image('ExitButton', 'Assets/buttons/ExitButton.png');
     this.load.text('bannedNames', 'Files/BannedNames.txt');
+    this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
+    this.load.image('MainCharacterMale', 'Assets/characters/Man.png');
 
     
 }
 
 function create() { 
+    gameState.cursors = this.input.keyboard.createCursorKeys()
     clearAllElements.call(this);
     //sets up main menu
     this.background = this.add.image(400, 300, 'background'); 
@@ -46,7 +49,8 @@ function create() {
     this.Level1.on('pointerdown', () => Level_1.call(this,gameState.playerName));
     this.Level3.on('pointerdown', () => Level_3.call(this,gameState.playerName));
 }
-function update() {}
+function update() {
+}
 function Level_1(PlayerName) {
     //Removes all main menu items
     clearAllElements.call(this);
@@ -59,9 +63,20 @@ function Level_1(PlayerName) {
     }
     //adds level 1 background and menu button
     this.add.image(400, 300, 'BG1.1');
-    this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
+    this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
+    this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
     this.MenuButton.on('pointerdown', () => Menu.call(this,1));
+    this.player = this.add.image(400, 400, 'MainCharacterMale').setDisplaySize(100, 100).setInteractive(); // Add main character image
+    var playing = true;
+    while(playing == true){
+        if(gameState.cursors.right.isDown){
+            gameState.player.x += 2;
+        }
+        if(gameState.cursors.left.isDown){
+            gameState.player.x -= 2;
+        }
 
+    }
 }
 function Level_2(PlayerName){
     //Removes all main menu items
