@@ -29,6 +29,8 @@ function preload() {
     this.load.text('bannedNames', 'Files/BannedNames.txt');
     this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
     this.load.image('MainCharacterMale', 'Assets/characters/Man.png');
+    this.load.image('InventorySlot', 'Assets/inventory/InventorySlot.png');
+    this.load.image('InventorySlotHover', 'Assets/inventory/InventorySlotHover.png');
 
     
 }
@@ -50,6 +52,12 @@ function create() {
     this.Level3.on('pointerdown', () => Level_3.call(this,gameState.playerName));
 }
 function update() {
+    if(gameState.cursors.right.isDown){
+            gameState.player.x += 2;
+    }
+    if(gameState.cursors.left.isDown){
+        gameState.player.x -= 2;
+    }
 }
 function Level_1(PlayerName) {
     //Removes all main menu items
@@ -63,20 +71,35 @@ function Level_1(PlayerName) {
     }
     //adds level 1 background and menu button
     this.add.image(400, 300, 'BG1.1');
+    // Add inventory background and menu button and inventory slots
     this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
     this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
     this.MenuButton.on('pointerdown', () => Menu.call(this,1));
-    this.player = this.add.image(400, 400, 'MainCharacterMale').setDisplaySize(100, 100).setInteractive(); // Add main character image
-    var playing = true;
-    while(playing == true){
-        if(gameState.cursors.right.isDown){
-            gameState.player.x += 2;
-        }
-        if(gameState.cursors.left.isDown){
-            gameState.player.x -= 2;
-        }
+    this.InventorySlot1 = this.add.image(150, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 1
+    this.InventorySlot1.on('pointerover', () => {
+        this.InventorySlot1.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot2 = this.add.image(250, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 2
+    this.InventorySlot2.on('pointerover', () => {
+        this.InventorySlot2.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot3 = this.add.image(350, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive();
+    this.InventorySlot3.on('pointerover', () => {
+        this.InventorySlot3.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot4 = this.add.image(450, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 4
+    this.InventorySlot4.on('pointerover', () => {
+        this.InventorySlot4.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot5 = this.add.image(550, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 5
+    this.InventorySlot5.on('pointerover', () => {
+        this.InventorySlot5.setTexture('InventorySlotHover');
+    });
 
-    }
+
+
+
+    gameState.player = this.add.image(400, 400, 'MainCharacterMale').setDisplaySize(100, 100).setInteractive(); // Add main character image
 }
 function Level_2(PlayerName){
     //Removes all main menu items
@@ -92,8 +115,30 @@ function Level_2(PlayerName){
     }
     //adds level 2 background and menu button
     this.add.image(400, 300, 'BG2.1');
-    this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
+       // Add inventory background and menu button and inventory slots
+    this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
+    this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
     this.MenuButton.on('pointerdown', () => Menu.call(this,2));
+    this.InventorySlot1 = this.add.image(150, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 1
+    this.InventorySlot1.on('pointerover', () => {
+        this.InventorySlot1.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot2 = this.add.image(250, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 2
+    this.InventorySlot2.on('pointerover', () => {
+        this.InventorySlot2.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot3 = this.add.image(350, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive();
+    this.InventorySlot3.on('pointerover', () => {
+        this.InventorySlot3.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot4 = this.add.image(450, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 4
+    this.InventorySlot4.on('pointerover', () => {
+        this.InventorySlot4.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot5 = this.add.image(550, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 5
+    this.InventorySlot5.on('pointerover', () => {
+        this.InventorySlot5.setTexture('InventorySlotHover');
+    });
 }
     
 function Level_3(PlayerName ){
@@ -110,8 +155,30 @@ function Level_3(PlayerName ){
     }
     //adds level 3 background and menu button
     this.add.image(400, 300, 'BG3.1');
-    this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
+       // Add inventory background and menu button and inventory slots
+    this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
+    this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
     this.MenuButton.on('pointerdown', () => Menu.call(this,3));
+    this.InventorySlot1 = this.add.image(150, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 1
+    this.InventorySlot1.on('pointerover', () => {
+        this.InventorySlot1.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot2 = this.add.image(250, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 2
+    this.InventorySlot2.on('pointerover', () => {
+        this.InventorySlot2.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot3 = this.add.image(350, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive();
+    this.InventorySlot3.on('pointerover', () => {
+        this.InventorySlot3.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot4 = this.add.image(450, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 4
+    this.InventorySlot4.on('pointerover', () => {
+        this.InventorySlot4.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot5 = this.add.image(550, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 5
+    this.InventorySlot5.on('pointerover', () => {
+        this.InventorySlot5.setTexture('InventorySlotHover');
+    });
 }
 
 
