@@ -12,8 +12,6 @@ class MainMenuScene extends Phaser.Scene {
             this.load.image('Medival', 'Assets/main menu/KingJohn.png');
     }
     create() { 
-        gameState.cursors = this.input.keyboard.createCursorKeys()
-        
         //sets up main menu
         this.background = this.add.image(400, 300, 'Background'); 
         this.OptionButton = createCircleButton(this, 400, 500, 'OptionButton',100).setInteractive();
@@ -23,8 +21,8 @@ class MainMenuScene extends Phaser.Scene {
         
 
         this.OptionButton.on('pointerdown', () => {this.scene.start('OptionsMenu', { from: 'MainMenu' })});
-        this.Level2.on('pointerdown', () => { this.scene.start('Level2', { from: 'MainMenu' }) });
         this.Level1.on('pointerdown', () => { this.scene.start('Level1', { from: 'MainMenu' }) });
+        this.Level2.on('pointerdown', () => { this.scene.start('Level2', { from: 'MainMenu' }) });
         this.Level3.on('pointerdown', () => { this.scene.start('Level3', { from: 'MainMenu' }) });
     }
 }
@@ -46,14 +44,17 @@ class OptionsMenuScene extends Phaser.Scene{
         this.add.image(400, 300, 'Background');
         // Draw a black rectangle as a background for the text
         const graphics = this.add.graphics();
-        graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
+        graphics.fillStyle(0x000000, gameState.Opacity); // Black with set opacity
         graphics.fillRect(200, 100, 400, 400);
         this.Exit = this.add.image(560, 120, 'ExitButton').setInteractive();
-        this.Exit.on('pointerdown', () => { /* When exit button is clicked */ this.scene.start('MainMenu'); });
+        this.Exit.on('pointerdown', () => { /* When exit button is clicked */ this.scene.start(this.scene.settings.data.from);});
         this.text = this.add.text(350, 100, 'Options', { fontSize: '28px', fill: '#fff', align: 'center' });
         this.Option1 = this.add.text(250, 200, 'Player Name:'+ gameState.playerName, 
         { fontSize: '24px', fill: '#fff' }).setInteractive();
         this.Option1.on('pointerdown', () => { this.scene.start('SetPlayerName'); });
+        this.Option2 = this.add.text(250, 250, 'Opacity:'+ gameState.Opacity*100+'%', 
+        { fontSize: '24px', fill: '#fff' }).setInteractive();
+        this.Option2.on('pointerdown', () => { this.scene.start('SetOpacity'); });
 
     }   
 }
@@ -73,7 +74,7 @@ class SetPlayerNameScene extends Phaser.Scene{
         graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
         graphics.fillRect(100, 200, 600, 120); 
         // Add prompt text centered in the box
-        const promptText = this.add.text(400, 240, 'Enter Player Name:', { fontSize: '28px', fill: '#fff', align: 'center' })
+        this.TextPrompt = this.add.text(400, 240, 'Enter Player Name:', { fontSize: '28px', fill: '#fff', align: 'center' })
         .setOrigin(0.5);
         // Create an HTML input element
         let inputElement = document.createElement('input');
@@ -93,35 +94,112 @@ class SetPlayerNameScene extends Phaser.Scene{
         const bannedNames = bannedNamesRaw
         .split('\n')
         .map(name => name.trim().toLowerCase())
-        .filter(name => name.length > 0);
-    }
-    update(){
+        .filter(name => name.length > 0);        
         inputElement.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             let playerName = inputElement.value.trim();
             if (playerName.length > 10) {
-                promptText.setText('Name too long, max 10 characters');
+                this.TextPrompt.setText('Name too long, max 10 characters');
                 return;
             }
             if (playerName.length === 0) {
-                promptText.setText('Name cannot be blank');
+                this.TextPrompt.setText('Name cannot be blank');
                 return;
             }
             if (bannedNames.includes(playerName.toLowerCase())) {
-                promptText.setText('Name not allowed. Choose another.');
+                this.TextPrompt.setText('Name not allowed. Choose another.');
                 return;
             }
             // Valid name
             gameState.playerName = playerName;
-            this.console.log('Player name set to: ' + gameState.playerName);
+            document.body.removeChild(inputElement);
+            this.scene.stop('SetPlayerName');
+            this.scene.start(this.scene.settings.data.from,{ from: 'SetPlayerName' });''
         }});
     }
+}
+class SetOpacityScene extends Phaser.Scene{
+    constructor(){
+        super('SetOpacity')
+    }
+    preload(){
+        this.load.image('Background', 'Assets/main menu/Background.png');
+    }
+    create(){
+        // Display background and prompt text
+        this.add.image(400, 300, 'Background');
+        // Draw a black rectangle as a background for the text
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
+        graphics.fillRect(100, 200, 600, 120); 
+        // Add prompt text centered in the box
+        const promptText = this.add.text(400, 240, 'Enter desired opacity:', { fontSize: '28px', fill: '#fff', align: 'center' })
+            .setOrigin(0.5);
+        // Create an HTML input element
+        let inputElement = document.createElement('input');
+        inputElement.type = 'text';
+        inputElement.id = 'opacityInput';
+        inputElement.style.position = 'absolute';
+        inputElement.setAttribute('data-phaser-ui','true');
+        inputElement.style.left = (this.sys.game.canvas.offsetLeft + 275) + 'px';
+        inputElement.style.top = (this.sys.game.canvas.offsetTop + 280) + 'px';
+        inputElement.style.width = '250px';
+        inputElement.style.fontSize = '20px';
+        inputElement.style.zIndex = 1000;
+        document.body.appendChild(inputElement);
+        inputElement.focus();
+
+    inputElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                let Opacity = inputElement.value.trim();
+                let OpacityNum = Number(Opacity);
+                // Validate numeric, range and integer (no '.' or '-' in the string)
+                if (Number.isNaN(OpacityNum) || OpacityNum < 0 || OpacityNum > 100 || Opacity.includes('.') || Opacity.includes('-')) {
+                    promptText.setText('It must be an integer between 0 and 100');
+                    return;
+                }
+                // Save numeric opacity and clean up
+                gameState.Opacity = OpacityNum / 100;
+                if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
+                graphics.destroy();
+                promptText.destroy();
+                this.scene.stop('SetOpacity');
+                this.scene.start('OptionsMenu',{ from: 'SetOpacity' });
+            }
+        });
+    }
+}
+class Level1Scene extends Phaser.Scene{
+    constructor(){
+        super('Level1')
+    }
+    preload(){
+        this.load.image('BG1.1', 'Assets/Background2.png');
+        this.load.image('MenuButton', 'Assets/buttons/Menu.png');
+    }
+    create(){
+        //checks if player name has been set if not calls function to set it
+        if (gameState.playerName == " " || gameState.playerName == undefined){
+            gameState.playerName= this.scene.start('SetPlayerName',{ from: 'Level1' });
+            return;
+
+        }
+        //adds level 1 background and menu button
+        this.add.image(400, 300, 'BG1.1');
+        // Add inventory background and menu button and inventory slots
+        this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
+        this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
+        this.MenuButton.on('pointerdown', () => {this.scene.start('InlevelMenu',{ from: 'Level1' })});
+    }
+
+
+
 }
 var config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    scene: [MainMenuScene, OptionsMenuScene, SetPlayerNameScene],
+    scene: [MainMenuScene, OptionsMenuScene, SetPlayerNameScene, SetOpacityScene, Level1Scene],
     parent: 'game',
 };
 
@@ -288,157 +366,4 @@ function Menu(id) {
         clearAllElements.call(this);
         Options.call(this, gameState.playerName, id);
     });
-}
-
-function PickPlayerName(returnToId){
-    // Display background and prompt text
-    this.add.image(400, 300, 'background');
-    // Draw a black rectangle as a background for the text
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
-    graphics.fillRect(100, 200, 600, 120); 
-    // Add prompt text centered in the box
-    const promptText = this.add.text(400, 240, 'Enter Player Name:', { fontSize: '28px', fill: '#fff', align: 'center' })
-        .setOrigin(0.5);
-    // Create an HTML input element
-    let inputElement = document.createElement('input');
-    inputElement.type = 'text';
-    inputElement.id = 'nameInput';
-    inputElement.style.position = 'absolute';
-    inputElement.setAttribute('data-phaser-ui','true');
-    inputElement.style.left = (this.sys.game.canvas.offsetLeft + 275) + 'px';
-    inputElement.style.top = (this.sys.game.canvas.offsetTop + 280) + 'px';
-    inputElement.style.width = '250px';
-    inputElement.style.fontSize = '20px';
-    inputElement.style.zIndex = 1000;
-    document.body.appendChild(inputElement);
-    inputElement.focus();
-     // Get banned names as an array (lowercase, trimmed)
-    const bannedNamesRaw = this.cache.text.get('bannedNames');
-    const bannedNames = bannedNamesRaw
-        .split('\n')
-        .map(name => name.trim().toLowerCase())
-        .filter(name => name.length > 0);
-
-    inputElement.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            let playerName = inputElement.value.trim();
-            if (playerName.length > 10) {
-                promptText.setText('Name too long, max 10 characters');
-                return;
-            }
-            if (playerName.length === 0) {
-                promptText.setText('Name cannot be blank');
-                return;
-            }
-            if (bannedNames.includes(playerName.toLowerCase())) {
-                promptText.setText('Name not allowed. Choose another.');
-                return;
-            }
-            // Valid name
-            gameState.playerName = playerName;
-            document.body.removeChild(inputElement);
-            graphics.destroy();
-            promptText.destroy();
-            clearAllElements.call(this);
-
-          // Return to the correct place based on returnToId
-            if (returnToId === 0){
-                // return to Options (called from in-game Menu). Keep the same return id so options can exit properly.
-                Options.call(this, playerName, 0);
-                return;
-            }
-            if (returnToId === 1){
-                Level_1.call(this, playerName);
-                return;
-            }
-            if (returnToId === 2){
-                Level_2.call(this, playerName);
-                return;
-            }
-            if (returnToId === 3){
-                Level_3.call(this, playerName);
-                return;
-            }
-            // default return to Options (main menu)
-            Options.call(this, playerName, 0);
-        }
-    });
-}
-
-function createCircleButton(scene, x, y, key, diameter) {
-    const image = scene.add.image(x, y, key).setDisplaySize(diameter, diameter).setInteractive();
-
-    // Create a circular mask at the same position as the image
-    const shape = scene.make.graphics({ x: 0, y: 0, add: false });
-    shape.fillStyle(0xffffff);
-    shape.fillCircle(diameter / 2, diameter / 2, diameter / 2);
-
-    // Create a texture from the graphics and use it as a mask
-    const maskTextureKey = key + '_mask_' + Math.random();
-    shape.generateTexture(maskTextureKey, diameter, diameter);
-    const maskImage = scene.add.image(x, y, maskTextureKey).setVisible(false);
-    const mask = maskImage.createBitmapMask();
-
-    image.setMask(mask);
-
-    return image;
-}
-
-function setOpacity(fromId){
-    // Display background and prompt text
-    this.add.image(400, 300, 'background');
-    // Draw a black rectangle as a background for the text
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x000000, gameState.Opacity); // Black with 70% opacity
-    graphics.fillRect(100, 200, 600, 120); 
-    // Add prompt text centered in the box
-    const promptText = this.add.text(400, 240, 'Enter desired opacity:', { fontSize: '28px', fill: '#fff', align: 'center' })
-        .setOrigin(0.5);
-    // Create an HTML input element
-    let inputElement = document.createElement('input');
-    inputElement.type = 'text';
-    inputElement.id = 'opacityInput';
-    inputElement.style.position = 'absolute';
-    inputElement.setAttribute('data-phaser-ui','true');
-    inputElement.style.left = (this.sys.game.canvas.offsetLeft + 275) + 'px';
-    inputElement.style.top = (this.sys.game.canvas.offsetTop + 280) + 'px';
-    inputElement.style.width = '250px';
-    inputElement.style.fontSize = '20px';
-    inputElement.style.zIndex = 1000;
-    document.body.appendChild(inputElement);
-    inputElement.focus();
-
- inputElement.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            let Opacity = inputElement.value.trim();
-            let OpacityNum = Number(Opacity);
-            // Validate numeric, range and integer (no '.' or '-' in the string)
-            if (Number.isNaN(OpacityNum) || OpacityNum < 0 || OpacityNum > 100 || Opacity.includes('.') || Opacity.includes('-')) {
-                promptText.setText('It must be an integer between 0 and 100');
-                return;
-            }
-            // Save numeric opacity and clean up
-            gameState.Opacity = OpacityNum / 100;
-            if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
-            graphics.destroy();
-            promptText.destroy();
-            clearAllElements.call(this);
-            // return to Options and provide the same fromId so exit works
-            Options.call(this, gameState.playerName, fromId);
-        }
-    });
-}
-function clearAllElements() {
-    // Remove scene input listeners
-    if (this.input && this.input.removeAllListeners) this.input.removeAllListeners();
-
-    // Remove HTML inputs the scene might have created (tagged with data-phaser-ui or known IDs)
-    const ids = ['nameInput', 'opacityInput'];
-    ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-    });
-    // Remove any elements explicitly tagged when created
-    document.querySelectorAll('[data-phaser-ui]').forEach(el => el.remove());
 }*/
