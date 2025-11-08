@@ -1,5 +1,6 @@
+// Importing addition functions from functions.js
 import { createCircleButton } from "./functions.js";
-// replace the original gameState declaration with a defaulted object
+// Global game state and deafault option values
 const gameState = {
     Opacity: 0.7,
     playerName: ' '
@@ -160,9 +161,14 @@ class SetPlayerNameScene extends Phaser.Scene{
             // Valid name
             gameState.playerName = playerName;
             if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
-            this.scene.stop('SetPlayerName');
-            // Go back to the Options menu (which will in turn return to the original level)
-            this.scene.start('OptionsMenu', { returnTo }); 
+                        this.scene.stop('SetPlayerName');
+            // If SetPlayerName was opened from a level, return directly to that level.
+            // Otherwise open OptionsMenu and let Options handle the final return.
+            if (typeof returnTo === 'string' && returnTo.indexOf('Level') === 0) {
+                this.scene.start(returnTo);
+            } else {
+                this.scene.start('OptionsMenu', { returnTo }); 
+            }
         }});
     }
 }
@@ -307,11 +313,11 @@ var config = {
     scene: [MainMenuScene, OptionsMenuScene, SetPlayerNameScene, SetOpacityScene, Level1Scene, Level2Scene, Level3Scene, InLevelMenuScene],
     parent: 'game',
 };
-
+// Creating the Phaser game instance
 var game = new Phaser.Game(config);
 
 /*
-    this.load.image('background', 'Assets/main menu/Background.png'); 
+    this.load.image('Background', 'Assets/main menu/Background.png'); 
     this.load.image('ExitButton', 'Assets/buttons/ExitButton.png');
     this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
     this.load.image('MainCharacterMale', 'Assets/characters/Man.png');
