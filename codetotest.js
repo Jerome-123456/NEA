@@ -238,18 +238,8 @@ class Level1Scene extends Phaser.Scene{
     preload(){
         this.load.image('BG1.1', 'Assets/Background2.png');
         this.load.image('MenuButton', 'Assets/buttons/Menu.png');
-        this.load.image('MainCharacterMale', 'Assets/characters/Man.png');
-        this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
-        this.load.image('InventorySlot', 'Assets/inventory/InventorySlot.png');
-        this.load.image('InventorySlotHover', 'Assets/inventory/InventorySlotHover.png');
     }
     create(){
-        //sets up keyboard inputs
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-        this.sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-        this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        this.dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         //checks if player name has been set if not call SetPlayerName and return to this level afterwards
         if (gameState.playerName === ' ' || gameState.playerName === undefined){
             this.scene.start('SetPlayerName',{ returnTo: 'Level1' });
@@ -258,68 +248,12 @@ class Level1Scene extends Phaser.Scene{
         //adds level 1 background and menu button
         this.add.image(400, 300, 'BG1.1');
         // Add inventory background and menu button and inventory slots
-        // Add inventory background and menu button and inventory slots
-        this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
-        
-        this.InventorySlot1 = this.add.image(150, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 1
-        this.InventorySlot1.on('pointerover', () => {
-            this.InventorySlot1.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot1.on('pointerout', () => {
-            this.InventorySlot1.setTexture('InventorySlot');
-        });
-        
-        this.InventorySlot2 = this.add.image(250, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 2
-        this.InventorySlot2.on('pointerover', () => {
-            this.InventorySlot2.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot2.on('pointerout', () => {
-            this.InventorySlot2.setTexture('InventorySlot');
-        });
-
-        this.InventorySlot3 = this.add.image(350, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 3
-        this.InventorySlot3.on('pointerover', () => {
-            this.InventorySlot3.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot3.on('pointerout', () => {
-            this.InventorySlot3.setTexture('InventorySlot');
-        });
-
-        this.InventorySlot4 = this.add.image(450, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 4
-        this.InventorySlot4.on('pointerover', () => {
-            this.InventorySlot4.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot4.on('pointerout', () => {
-            this.InventorySlot4.setTexture('InventorySlot');
-        });
-
-        this.InventorySlot5 = this.add.image(550, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 5
-        this.InventorySlot5.on('pointerover', () => {
-            this.InventorySlot5.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot5.on('pointerout', () => {
-            this.InventorySlot5.setTexture('InventorySlot');
-        });
-
         this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
         this.MenuButton.on('pointerdown', () => {this.scene.start('InlevelMenu',{ from: 'Level1' })});
-        
-        // Create a physics-enabled player so setVelocity works
-        this.player = this.physics.add.sprite(400, 400, 'MainCharacterMale')
-            .setDisplaySize(100, 100)
-            .setCollideWorldBounds(true)
-            .setInteractive();
     }
-    update() {
-        // Reset velocity each frame
-        this.player.setVelocity(0, 0);
 
-        // Use scene-scoped input references
-        if (this.cursors.up.isDown || this.wKey.isDown) { this.player.setVelocityY(-200); }
-        if (this.cursors.down.isDown || this.sKey.isDown) { this.player.setVelocityY(200); }
-        if (this.cursors.left.isDown || this.aKey.isDown) { this.player.setVelocityX(-200); }
-        if (this.cursors.right.isDown || this.dKey.isDown) { this.player.setVelocityX(200); }
-    }
+
+
 }
 ///////////////////////
 //////Level2Scene//////
@@ -378,12 +312,74 @@ var config = {
     height: 600,
     scene: [MainMenuScene, OptionsMenuScene, SetPlayerNameScene, SetOpacityScene, Level1Scene, Level2Scene, Level3Scene, InLevelMenuScene],
     parent: 'game',
-    physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { y: 0 },
-      debug: false
-    }},
 };
 // Creating the Phaser game instance
-const game = new Phaser.Game(config);
+var game = new Phaser.Game(config);
+
+/*
+    this.load.image('Background', 'Assets/main menu/Background.png'); 
+    this.load.image('ExitButton', 'Assets/buttons/ExitButton.png');
+    this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
+    this.load.image('MainCharacterMale', 'Assets/characters/Man.png');
+    this.load.image('InventorySlot', 'Assets/inventory/InventorySlot.png');
+    this.load.image('InventorySlotHover', 'Assets/inventory/InventorySlotHover.png');
+
+    
+
+
+function update() {
+    if(gameState.cursors.right.isDown){
+            gameState.player.x += 2;
+    }
+    if(gameState.cursors.left.isDown){
+        gameState.player.x -= 2;
+    }
+}
+    // Add inventory background and menu button and inventory slots
+    this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
+    this.InventorySlot1 = this.add.image(150, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 1
+    this.InventorySlot1.on('pointerover', () => {
+        this.InventorySlot1.setTexture('InventorySlotHover');
+    });
+    this.InventorySlot1.on('pointerout', () => {
+        this.InventorySlot1.setTexture('InventorySlot');
+    });
+    
+    gameState.player = this.add.image(400, 400, 'MainCharacterMale').setDisplaySize(100, 100).setInteractive(); // Add main character image
+
+
+function Menu(id) {
+    // clear any previous UI the scene may have left
+    clearAllElements.call(this);
+
+    // background
+    this.add.image(400, 300, 'background');
+
+    // hide the in-level menu button if present
+    if (this.MenuButton) this.MenuButton.visible = false;
+
+    // use stored opacity or a sensible default
+    const opacity = (typeof gameState.Opacity === 'number') ? gameState.Opacity : 0.7;
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x000000, opacity);
+    graphics.fillRect(200, 100, 400, 400);
+     // Exit button — return based on the id that opened the Menu
+    this.Exit = this.add.image(560, 120, 'ExitButton').setInteractive();
+    this.Exit.on('pointerdown', () => {
+        clearAllElements.call(this);
+        // If Menu was opened from a level (id > 0) go back to that level
+        if (typeof id === 'number' && id > 0) {
+            if (id === 1) { Level_1.call(this, gameState.playerName); return; }
+            if (id === 2) { Level_2.call(this, gameState.playerName); return; }
+            if (id === 3) { Level_3.call(this, gameState.playerName); return; }
+        }
+        // otherwise go back to main menu
+        create.call(this);
+    });
+    this.text = this.add.text(355, 100, 'Menu', { fontSize: '28px', fill: '#fff', align: 'center' });
+    this.option1 = this.add.text(250, 200, 'Options', { fontSize: '24px', fill: '#fff' }).setInteractive();
+    this.option1.on('pointerdown', () => {
+        clearAllElements.call(this);
+        Options.call(this, gameState.playerName, id);
+    });
+}*/
