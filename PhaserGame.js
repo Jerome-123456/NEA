@@ -236,89 +236,123 @@ class Level1Scene extends Phaser.Scene{
         super('Level1')
     }
     preload(){
-        this.load.image('BG1.1', 'Assets/Background2.png');
+        this.load.image('sky', 'https://labs.phaser.io/assets/skies/sky4.png');
         this.load.image('MenuButton', 'Assets/buttons/Menu.png');
-        this.load.image('MainCharacterMale', 'Assets/characters/Man.png');
+        this.load.spritesheet('MainCharacterMale', 'Assets/characters/Manwalk.png', { frameWidth: 48, frameHeight: 48 });
         this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
         this.load.image('InventorySlot', 'Assets/inventory/InventorySlot.png');
         this.load.image('InventorySlotHover', 'Assets/inventory/InventorySlotHover.png');
+         // Bot texture (blue circle)
+            const g2 = this.add.graphics();
+            g2.fillStyle(0x3aa1ff,1).fillCircle(16,16,16);
+            g2.lineStyle(3,0x124a84,1).strokeCircle(16,16,16);
+            g2.generateTexture('botTex',32,32); g2.destroy();
+        
+        
     }
     create(){
-        //sets up keyboard inputs
+        const WORLD_W = 1600;
+        const WORLD_H = 600;
+        // keep bg on the scene so update() can access it
+        this.bg = null;
+         // World bounds & camera
+         this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
+         this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+ 
+         // Parallax sky using a tilesprite that fills the viewport and scrolls with camera
+         this.bg = this.add.tileSprite(0, 0, 800, 600, 'sky')
+                .setOrigin(0, 0)
+                .setScrollFactor(0); // fixed to camera
+
+        // Set up cursor keys for player movement
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
-        this.sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
-        this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        this.dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         //checks if player name has been set if not call SetPlayerName and return to this level afterwards
         if (gameState.playerName === ' ' || gameState.playerName === undefined){
             this.scene.start('SetPlayerName',{ returnTo: 'Level1' });
             return;
         }
-        //adds level 1 background and menu button
-        this.add.image(400, 300, 'BG1.1');
+
+
         // Add inventory background and menu button and inventory slots
-        // Add inventory background and menu button and inventory slots
-        this.InventoryBackground = this.add.image(400, 550, 'InventoryBackground').setDisplaySize(800,150); //Add inventory background
+        // Inventory is part of the world (will scroll with camera) and sits at the bottom of the level
+        const inventoryY = WORLD_H - 40;                  // 40px above the bottom edge of the world
+        const inventoryCenterX = WORLD_W / 2;
+        const slotSpacing = 80;
+        const startX = inventoryCenterX - (2 * slotSpacing);
+
+        this.InventoryBackground = this.add.image(inventoryCenterX, inventoryY, 'InventoryBackground')
+            .setDisplaySize(800, 150)
+            .setScrollFactor(1); // explicit: scrolls with the world
+
+        // create 5 slots centered on the background; setScrollFactor(1) so they move with the world
+        this.InventorySlot1 = this.add.image(startX + (0 * slotSpacing), inventoryY, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
+        this.InventorySlot2 = this.add.image(startX + (1 * slotSpacing), inventoryY, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
+        this.InventorySlot3 = this.add.image(startX + (2 * slotSpacing), inventoryY, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
+        this.InventorySlot4 = this.add.image(startX + (3 * slotSpacing), inventoryY, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
+        this.InventorySlot5 = this.add.image(startX + (4 * slotSpacing), inventoryY, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
+
+        // hover handlers (same as before)
+        [this.InventorySlot1, this.InventorySlot2, this.InventorySlot3, this.InventorySlot4, this.InventorySlot5].forEach(slot => {
+            slot.on('pointerover', () => slot.setTexture('InventorySlotHover'));
+            slot.on('pointerout', () => slot.setTexture('InventorySlot'));
+        });
+
+        // menu button sits with the inventory at world bottom
+        this.MenuButton = this.add.image(inventoryCenterX + 375, inventoryY + 25, 'MenuButton')
+            .setInteractive().setScrollFactor(1);
+        this.MenuButton.on('pointerdown', () => { this.scene.start('InlevelMenu', { from: 'Level1' }); });
         
-        this.InventorySlot1 = this.add.image(150, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 1
-        this.InventorySlot1.on('pointerover', () => {
-            this.InventorySlot1.setTexture('InventorySlotHover');
+        // Animations (matches Phaser tutorial sheet)
+        this.anims.create({ key: 'left',  frames: this.anims.generateFrameNumbers('MainCharacterMale', { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'turn',  frames: [ { key: 'MainCharacterMale', frame: 4 } ], frameRate: 20 });
+        this.anims.create({ key: 'right', frames: this.anims.generateFrameNumbers('MainCharacterMale', { start: 5, end: 8 }), frameRate: 12, repeat: -1 });
+        // create one walk animation that uses the whole strip, plus an idle frame
+        this.anims.create({
+            key: 'walk',
+            frames: this.anims.generateFrameNumbers('MainCharacterMale', { start: 0, end: 6 }),
+            frameRate: 10,
+            repeat: -1
         });
-        this.InventorySlot1.on('pointerout', () => {
-            this.InventorySlot1.setTexture('InventorySlot');
-        });
-        
-        this.InventorySlot2 = this.add.image(250, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 2
-        this.InventorySlot2.on('pointerover', () => {
-            this.InventorySlot2.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot2.on('pointerout', () => {
-            this.InventorySlot2.setTexture('InventorySlot');
-        });
-
-        this.InventorySlot3 = this.add.image(350, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 3
-        this.InventorySlot3.on('pointerover', () => {
-            this.InventorySlot3.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot3.on('pointerout', () => {
-            this.InventorySlot3.setTexture('InventorySlot');
+        this.anims.create({
+            key: 'idle',
+            frames: [{ key: 'MainCharacterMale', frame: 0 }],
+            frameRate: 10
         });
 
-        this.InventorySlot4 = this.add.image(450, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 4
-        this.InventorySlot4.on('pointerover', () => {
-            this.InventorySlot4.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot4.on('pointerout', () => {
-            this.InventorySlot4.setTexture('InventorySlot');
-        });
+        // Create player sprite and enable physics
+        this.player = this.physics.add.sprite(400, 430, 'MainCharacterMale');
+        this.player.setCollideWorldBounds(true);
+        this.player.setScale(1.5);
+        // Camera follow the player sprite on this
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    
 
-        this.InventorySlot5 = this.add.image(550, 550, 'InventorySlot').setDisplaySize(64,64).setInteractive(); // Add inventory slot 5
-        this.InventorySlot5.on('pointerover', () => {
-            this.InventorySlot5.setTexture('InventorySlotHover');
-        });
-        this.InventorySlot5.on('pointerout', () => {
-            this.InventorySlot5.setTexture('InventorySlot');
-        });
-
-        this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive(); // Set up menu button
-        this.MenuButton.on('pointerdown', () => {this.scene.start('InlevelMenu',{ from: 'Level1' })});
-        
-        // Create a physics-enabled player so setVelocity works
-        this.player = this.physics.add.sprite(400, 400, 'MainCharacterMale')
-            .setDisplaySize(100, 100)
-            .setCollideWorldBounds(true)
-            .setInteractive();
+            
     }
     update() {
+         if (!this.player) return;
+         // Parallax background: move tiles based on camera scroll
+        this.bg.tilePositionX = this.cameras.main.scrollX * 0.4;
         // Reset velocity each frame
         this.player.setVelocity(0, 0);
+        const speed = 160;
+        const left = this.cursors.left.isDown;
+        const right = this.cursors.right.isDown;
 
-        // Use scene-scoped input references
-        if (this.cursors.up.isDown || this.wKey.isDown) { this.player.setVelocityY(-200); }
-        if (this.cursors.down.isDown || this.sKey.isDown) { this.player.setVelocityY(200); }
-        if (this.cursors.left.isDown || this.aKey.isDown) { this.player.setVelocityX(-200); }
-        if (this.cursors.right.isDown || this.dKey.isDown) { this.player.setVelocityX(200); }
+        if (left)  { this.player.setVelocityX(-speed); this.player.flipX = true; }
+        if (right) { this.player.setVelocityX(speed);  this.player.flipX = false; }
+
+        // Play animation: walk when moving, idle otherwise
+        if (this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0) {
+            this.player.anims.play('walk', true);
+        } else {
+            this.player.anims.play('idle', true);
+        }
     }
 }
 ///////////////////////
