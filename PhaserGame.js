@@ -236,7 +236,7 @@ class Level1Scene extends Phaser.Scene{
         super('Level1')
     }
     preload(){
-        this.load.image('sky', 'https://labs.phaser.io/assets/skies/sky4.png');
+        this.load.image('sky', 'Assets/Level 1/sky4.png');
         this.load.image('MenuButton', 'Assets/buttons/Menu.png');
         this.load.spritesheet('MainCharacterMale', 'Assets/characters/Manwalk.png', { frameWidth: 48, frameHeight: 48 });
         this.load.image('InventoryBackground', 'Assets/inventory/Background.png');
@@ -247,14 +247,22 @@ class Level1Scene extends Phaser.Scene{
             g2.fillStyle(0x3aa1ff,1).fillCircle(16,16,16);
             g2.lineStyle(3,0x124a84,1).strokeCircle(16,16,16);
             g2.generateTexture('botTex',32,32); g2.destroy();
+        this.load.image('ground', 'Assets/Level 1/ground.png');
         
         
     }
     create(){
         const WORLD_W = 1600;
         const WORLD_H = 600;
+        const W = this.scale.width;
+        const H = this.scale.height;
         // keep bg on the scene so update() can access it
         this.bg = null;
+        // Creating the ground
+        // Ground spans the world as repeated segments
+        for (let x = 200; x < WORLD_W; x += 400) {
+            this.ground = this.add.image(x, 500, 'ground').setScale(2);
+        }
          // World bounds & camera
          this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
          this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
@@ -271,42 +279,29 @@ class Level1Scene extends Phaser.Scene{
             this.scene.start('SetPlayerName',{ returnTo: 'Level1' });
             return;
         }
-
-
         // Add inventory background and menu button and inventory slots
-        // Inventory is part of the world (will scroll with camera) and sits at the bottom of the level
-        const inventoryY = WORLD_H - 40;                  // 40px above the bottom edge of the world
-        const inventoryCenterX = WORLD_W / 2;
-        const slotSpacing = 80;
-        const startX = inventoryCenterX - (2 * slotSpacing);
-
-        this.InventoryBackground = this.add.image(inventoryCenterX, inventoryY, 'InventoryBackground')
-            .setDisplaySize(800, 150)
-            .setScrollFactor(1); // explicit: scrolls with the world
-
-        // create 5 slots centered on the background; setScrollFactor(1) so they move with the world
-        this.InventorySlot1 = this.add.image(startX + (0 * slotSpacing), inventoryY, 'InventorySlot')
-            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
-        this.InventorySlot2 = this.add.image(startX + (1 * slotSpacing), inventoryY, 'InventorySlot')
-            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
-        this.InventorySlot3 = this.add.image(startX + (2 * slotSpacing), inventoryY, 'InventorySlot')
-            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
-        this.InventorySlot4 = this.add.image(startX + (3 * slotSpacing), inventoryY, 'InventorySlot')
-            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
-        this.InventorySlot5 = this.add.image(startX + (4 * slotSpacing), inventoryY, 'InventorySlot')
-            .setDisplaySize(64, 64).setInteractive().setScrollFactor(1);
-
-        // hover handlers (same as before)
+        this.HUD = this.add.rectangle(0, H - 80, W, 80, 0x332112, 0.40)
+            .setOrigin(0, 0)
+            .setScrollFactor(0,0)   // stick to screen
+            .setDepth(999);
+        this.InventorySlot1 = this.add.image(120, 560, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(0);
+        this.InventorySlot2 = this.add.image(240, 560, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(0);
+        this.InventorySlot3 = this.add.image(360, 560, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(0);
+        this.InventorySlot4 = this.add.image(480, 560, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(0);
+        this.InventorySlot5 = this.add.image(600, 560, 'InventorySlot')
+            .setDisplaySize(64, 64).setInteractive().setScrollFactor(0);
+         // hover handlers
         [this.InventorySlot1, this.InventorySlot2, this.InventorySlot3, this.InventorySlot4, this.InventorySlot5].forEach(slot => {
             slot.on('pointerover', () => slot.setTexture('InventorySlotHover'));
             slot.on('pointerout', () => slot.setTexture('InventorySlot'));
         });
-
-        // menu button sits with the inventory at world bottom
-        this.MenuButton = this.add.image(inventoryCenterX + 375, inventoryY + 25, 'MenuButton')
-            .setInteractive().setScrollFactor(1);
-        this.MenuButton.on('pointerdown', () => { this.scene.start('InlevelMenu', { from: 'Level1' }); });
-        
+        // Set up menu button
+        this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive().setScrollFactor(0); 
+        this.MenuButton.on('pointerdown', () => {this.scene.start('InlevelMenu',{ from: 'Level1' })});
         // Animations (matches Phaser tutorial sheet)
         this.anims.create({ key: 'left',  frames: this.anims.generateFrameNumbers('MainCharacterMale', { start: 0, end: 3 }), frameRate: 12, repeat: -1 });
         this.anims.create({ key: 'turn',  frames: [ { key: 'MainCharacterMale', frame: 4 } ], frameRate: 20 });
@@ -330,6 +325,7 @@ class Level1Scene extends Phaser.Scene{
         this.player.setScale(1.5);
         // Camera follow the player sprite on this
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
     
 
             
