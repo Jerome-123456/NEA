@@ -110,3 +110,32 @@ export function handleBotTurn(scene, newVelX) {
     setTimeout(() => { bot.turning = false; }, 320);
   }
 }
+
+
+
+export async function askOpenAI(prompt) {
+  const body = {
+    model: "gpt-4.1-mini",
+    input: prompt,
+    instructions: "You are an NPC in a video game. Respond to the player in a concise and friendly manner, staying in character. as a medival charecter",
+  };
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  const data = await response.json();
+
+  // Responses API convenience field
+  const text =
+    data.output_text ??
+    data.output?.[0]?.content?.[0]?.text ??
+    "[no reply]";
+
+  return text;
+}

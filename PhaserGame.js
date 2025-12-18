@@ -1,5 +1,5 @@
 // Importing addition functions from functions.js
-import { createCircleButton, respawnBotOnHill, isCloseToBot, openDialog, closeDialog, handleBotTurn  } from "./functions.js";
+import { createCircleButton, respawnBotOnHill, isCloseToBot, openDialog, closeDialog, handleBotTurn, askOpenAI  } from "./functions.js";
 // Global game state and deafault option values
 const gameState = {
     Opacity: 0.7,
@@ -15,23 +15,16 @@ class MainMenuScene extends Phaser.Scene {
     preload() {
             this.load.image('Background', 'Assets/main menu/Background.png');
             this.load.image('OptionButton','Assets/main menu/OptionButton.png');
-            this.load.image('Victorian', 'Assets/main menu/Victoria.png');
             this.load.image('Vikings', 'Assets/main menu/Vikings.png');
-            this.load.image('Medival', 'Assets/main menu/KingJohn.png');
     }
     create() { 
         //sets up main menu
         this.background = this.add.image(400, 300, 'Background'); 
-        this.OptionButton = createCircleButton(this, 400, 500, 'OptionButton',100).setInteractive();
-        this.Level2 = createCircleButton(this, 400, 300, 'Medival', 120).setInteractive();
+        this.OptionButton = createCircleButton(this, 600, 300, 'OptionButton',100).setInteractive();
         this.Level1 = createCircleButton(this, 200, 300, 'Vikings', 120).setInteractive();
-        this.Level3 = createCircleButton(this, 600, 300, 'Victorian',120).setInteractive();
         
-
         this.OptionButton.on('pointerdown', () => {this.scene.start('OptionsMenu', { from: 'MainMenu' })});
         this.Level1.on('pointerdown', () => { this.scene.start('Level1', { from: 'MainMenu' }) });
-        this.Level2.on('pointerdown', () => { this.scene.start('Level2', { from: 'MainMenu' }) });
-        this.Level3.on('pointerdown', () => { this.scene.start('Level3', { from: 'MainMenu' }) });
     }
 }
 ///////////////////////
@@ -108,7 +101,7 @@ class OptionsMenuScene extends Phaser.Scene{
         this.Exit = this.add.image(560, 120, 'ExitButton').setInteractive();
         this.Exit.on('pointerdown', () => {
             if (fromInlevel) {
-                // Came from in-level menu: just close Options and return to the in-level menu (leave level paused)
+                // Came from in-level menu: just close
                 this.scene.stop(); // close OptionsMenu only
                 if (this.scene.isActive('InlevelMenu')) this.scene.bringToTop('InlevelMenu');
             } else {
@@ -162,6 +155,8 @@ class SetPlayerNameScene extends Phaser.Scene{
     }
     create(){
         const returnTo = this.scene.settings.data?.returnTo || 'OptionsMenu';
+        // Disable Phaser keyboard capture while a DOM input is focused
+        if (this.input?.keyboard?.manager) this.input.keyboard.manager.enabled = false;
         // Display background and prompt text
         const bg = this.add.image(400, 300, 'Background').setDepth(1000);
         // Draw a black rectangle as a background for the text
@@ -187,6 +182,12 @@ class SetPlayerNameScene extends Phaser.Scene{
         inputElement.style.zIndex = 1000;
         document.body.appendChild(inputElement);
         inputElement.focus();
+        // Ensure input is removed if this scene is shut down without completing
+        this.events.on('shutdown', () => {
+            if (inputElement && inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
+            // Re-enable Phaser keyboard capture when leaving the overlay
+            if (this.input?.keyboard?.manager) this.input.keyboard.manager.enabled = true;
+        });
         // Get banned names as an array (lowercase, trimmed)
         const bannedNamesRaw = this.cache.text.get('bannedNames');
         const bannedNames = bannedNamesRaw
@@ -194,7 +195,17 @@ class SetPlayerNameScene extends Phaser.Scene{
         .map(name => name.trim().toLowerCase())
         .filter(name => name.length > 0);        
         inputElement.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
+
+            // prevent page scrolling etc so SPACE works like a normal typing key
+            if (event.key === ' ' || event.code === 'Space') {
+                event.stopPropagation();
+                // don't preventDefault or you won't get a space character
+                return;
+            }
+            if (event.key !== 'Enter') return;
+
+            event.preventDefault();   // stop Enter from doing anything weird (like submitting a form)
+
             let playerName = inputElement.value.trim();
             if (playerName.length > 10) {
                 this.TextPrompt.setText('Name too long, max 10 characters');
@@ -211,6 +222,8 @@ class SetPlayerNameScene extends Phaser.Scene{
             // Valid name
             gameState.playerName = playerName;
             if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
+            // Re-enable Phaser keyboard capture now that typing is done
+            if (this.input?.keyboard?.manager) this.input.keyboard.manager.enabled = true;
             // Close this overlay and return to the caller. If launched from the in-level flow,
             // return to the existing OptionsMenu overlay; otherwise resume/start the target.
             const fromInlevel = !!this.scene.settings.data?.fromInlevelMenu;
@@ -234,9 +247,9 @@ class SetPlayerNameScene extends Phaser.Scene{
             } else {
                 this.scene.start('OptionsMenu', { returnTo });
             }
-        }});
-    }
-}
+        }); 
+    }       
+}           
 ///////////////////////
 //////OpacityMenu//////
 ///////////////////////
@@ -249,6 +262,8 @@ class SetOpacityScene extends Phaser.Scene{
     }
     create(){
         const returnTo = this.scene.settings.data?.returnTo || 'OptionsMenu';
+        // Disable Phaser keyboard capture while a DOM input is focused
+        if (this.input?.keyboard?.manager) this.input.keyboard.manager.enabled = false;
         // Display background and prompt text
         const bg = this.add.image(400, 300, 'Background').setDepth(1000);
         // Draw a black rectangle as a background for the text
@@ -274,6 +289,12 @@ class SetOpacityScene extends Phaser.Scene{
         inputElement.style.zIndex = 1000;
         document.body.appendChild(inputElement);
         inputElement.focus();
+        // Cleanup input if scene is shut down without completing
+        this.events.on('shutdown', () => {
+            if (inputElement && inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
+            // Re-enable Phaser keyboard capture when leaving the overlay
+            if (this.input?.keyboard?.manager) this.input.keyboard.manager.enabled = true;
+        });
 
     inputElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
@@ -289,6 +310,8 @@ class SetOpacityScene extends Phaser.Scene{
                 if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
                 graphics.destroy();
                 promptText.destroy();
+                // Re-enable Phaser keyboard capture now that typing is done
+                if (this.input?.keyboard?.manager) this.input.keyboard.manager.enabled = true;
                 // Close this overlay and return to OptionsMenu overlay if present,
                 // otherwise start OptionsMenu normally.
                 const fromInlevel = !!this.scene.settings.data?.fromInlevelMenu;
@@ -327,11 +350,48 @@ class Level1Scene extends Phaser.Scene{
         this.load.image('groundInterior', 'Assets/Level 1/groundInterior.png');
         this.load.image('skyInterior', 'Assets/Level 1/sky5.png');
         this.load.image('house', 'Assets/Level 1/house1.png');
+        this.load.image('key','Assets/items/key.png');
         
         
     }
     create(){
-        
+
+        // create keys first
+        this.cursors   = this.input.keyboard.createCursorKeys();
+        window.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        window.eKey     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        window.escKey   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+        // keep a reference to the underlying keyboard manager so we can disable it while DOM inputs are used
+        window.keyboardManager = this.input.keyboard.manager;
+
+        // helper functions to enable/disable key listeners
+        this.enableLevelKeys = () => {
+            window.spaceKey.enabled = true;
+            window.eKey.enabled = true;
+            window.escKey.enabled = true;
+            if (window.keyboardManager) window.keyboardManager.enabled = true;
+        };
+        this.disableLevelKeys = () => {
+            window.spaceKey.enabled = false;
+            window.eKey.enabled = false;
+            window.escKey.enabled = false;
+            if (window.keyboardManager) window.keyboardManager.enabled = false;
+        };
+
+        // Make sure input is enabled when the level first starts (in case another overlay disabled it)
+        this.enableLevelKeys();
+
+        // Ensure keys are re-enabled whenever this scene is resumed/woken
+        this.events.on('resume', this.enableLevelKeys, this);
+        this.events.on('wake', this.enableLevelKeys, this);
+        // Clean up any leftover DOM inputs when the scene is shutdown
+        this.events.on('shutdown', () => {
+            document.querySelectorAll('[data-phaser-ui]').forEach(el => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            });
+        });
+
         /////////////////
         /// World Setup//
         /////////////////
@@ -365,9 +425,10 @@ class Level1Scene extends Phaser.Scene{
         this.atHouse = false;
         this.insideHouse = false;
         // Small "SPACE" prompt shown above the house when player is in the zone
-        this.housePrompt = this.add.text(this.house.x, this.house.y - 60, 'SPACE', { fontSize: '16px', fill: '#fff' })
+        this.housePrompt = this.add.text(this.house.x, this.house.y - 60, 'E', { fontSize: '16px', fill: '#fff' })
             .setOrigin(0.5).setDepth(1502).setScrollFactor(1).setAlpha(0);
         
+        this.key = this.add.image(700, 450, 'key').setDisplaySize(32,32);
         ///////////////////
         ///HUD & Inventory/
         ///////////////////
@@ -433,58 +494,32 @@ class Level1Scene extends Phaser.Scene{
         // Camera follow the player sprite on this
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         
-        ////////////////////
-        /// Patrolling Bot /
-        ////////////////////
-        
-        // Create a simple patrolling bot
+        ///////////////////
+        ///Bot & Patrol////
+        ///////////////////
         this.botPatrol = { minX: 320, maxX: 820, speed: 90 };
         window.botPatrol = this.botPatrol;
-        this.bot = this.physics.add.sprite((this.botPatrol.minX + this.botPatrol.maxX) / 2, 430, 'botTex').setDisplaySize(32, 32);
-        this.bot.setCollideWorldBounds(false); // allow it to roll off-screen; we’ll respawn it
+
+        this.bot = this.physics.add.sprite((this.botPatrol.minX + this.botPatrol.maxX) / 2, 430, 'botTex')
+            .setDisplaySize(32, 32);
+        this.bot.setCollideWorldBounds(false);
         this.bot.setBounce(0);
         this.bot.body.setCircle(16);
         this.bot.body.setOffset(0, 0);
         this.bot.setVelocityX(this.botPatrol.speed);
-        // flag used to avoid stacking turn tweens
         this.bot.turning = false;
-
-        // some helper functions (in functions.js) may expect a global `bot` variable — expose it:
         window.bot = this.bot;
-        // Keyboard keys (exposed globally for helpers)
-        window.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        window.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        this.spaceKey = window.spaceKey;
-        this.escKey = window.escKey;
 
-        // Dialog container fixed to camera so it is always centered on the screen
-        window.dialogGroup = this.add.container(W/2, H/2).setScrollFactor(0).setDepth(1500).setVisible(false);
-        this.dialogGroup = window.dialogGroup;
-        // panel and texts are children of the container (positions are relative)
-        const panel = this.add.rectangle(0, 0, 420, 130, 0x0f1822, 0.96)
-            .setStrokeStyle(2, 0x3aa1ff, 1).setOrigin(0.5);
-        const txt1 = this.add.text(0, -16, '🤖 Bot: What do you want?', {
-            fontFamily: 'Arial', fontSize: '20px', color: '#ffffff'
-        }).setOrigin(0.5);
-        const txt2 = this.add.text(0, 18, 'SPACE: Continue   •   ESC: Cancel', {
-            fontFamily: 'Arial', fontSize: '14px', color: '#b7c9d3'
-        }).setOrigin(0.5);
-        this.dialogGroup.add([panel, txt1, txt2]);
- 
-        // Movement flag (global for helpers)
-        window.canMove = true;
-        this.canMove = window.canMove;
- 
-        // Near-prompt for approaching the bot (also global for helpers) — show SPACE since open uses spaceKey
-        window.nearPrompt = this.add.text(0, 0, 'SPACE', { fontSize: '14px', fill: '#fff' })
-             .setOrigin(0.5).setDepth(1501).setAlpha(0);
-         this.nearPrompt = window.nearPrompt;
- 
-         // Dialog open flag (global so openDialog/closeDialog can toggle it)
-         window.dialogOpen = false;
-         this.dialogOpen = window.dialogOpen;
+        // Bot dialog prompt
+        this.nearPrompt = this.add.text(0, 0, 'SPACE', { fontSize: '16px', fill: '#fff' })
+            .setOrigin(0.5)
+            .setDepth(1500)
+            .setScrollFactor(1)
+            .setAlpha(0);
 
-        // Open / close dialog and enter house when in front of the door
+        //////////////////////////////
+        ///House / AI Entry System///
+        //////////////////////////////
         // Enter interior: move player inside, swap textures and show an exit area
         this.enterHouse = () => {
             if (this.insideHouse) return;
@@ -507,19 +542,17 @@ class Level1Scene extends Phaser.Scene{
             this.player.setPosition(interiorX, interiorY);
             // create an exit zone in world coords if not already created
             if (!this.exitZone) {
-                // place exit roughly where the house door would be in world coords
-                // pick a position near the left side of the camera so it resembles a door
                 const exitX = interiorX - 220;
-                const exitY = interiorY - 90;
+                const exitY = interiorY - 45;
                 this.exitZone = new Phaser.Geom.Rectangle(exitX - 30, exitY, 60, 90);
                 // visible black area representing the door inside (world-space, scrolls with camera)
                 this.exitRect = this.add.rectangle(exitX, exitY + 45, 60, 90, 0x000000, 1)
                     .setOrigin(0.5, 0.5)
-                    .setDepth(1502)
-                    .setScrollFactor(1)
-                    .setVisible(true);
+                    .setDepth(1015)
+                     .setScrollFactor(1)
+                     .setVisible(true);
                 // prompt above the exit
-                this.exitPrompt = this.add.text(exitX, exitY - 20, 'SPACE', { fontSize: '16px', fill: '#fff' })
+                this.exitPrompt = this.add.text(exitX, exitY - 20, 'E', { fontSize: '16px', fill: '#fff' })
                     .setOrigin(0.5).setDepth(1503).setScrollFactor(1).setAlpha(0);
             } else {
                 // reposition exit to match camera-centered interior if needed and show it
@@ -531,31 +564,69 @@ class Level1Scene extends Phaser.Scene{
             }
         };
 
+        // Exit interior: restore outside state
+        this.exitHouse = () => {
+            if (!this.insideHouse) return;
+            this.insideHouse = false;
+            // restore ground and sky
+            this.grounds.forEach(g => g.setTexture('ground'));
+            if (this.bg && this.bg.setTexture) this.bg.setTexture('sky');
+            // show house and bot again
+            if (this.house) this.house.setVisible(true);
+            if (this.bot) {
+                this.bot.setVisible(true);
+                if (this.bot.body) this.bot.body.enable = true;
+                // place bot back to patrol center to avoid overlap with player
+                this.bot.setPosition((this.botPatrol.minX + this.botPatrol.maxX) / 2, this.bot.y);
+                this.bot.setVelocityX(this.botPatrol.speed);
+            }
+            // hide exit visuals
+            if (this.exitRect) this.exitRect.setVisible(false);
+            if (this.exitPrompt) this.exitPrompt.setAlpha(0);
+            // move player outside in front of the house
+            if (this.house) this.player.setPosition(this.house.x + 20, this.house.y + 70);
+        };
+
+        // Space key handling: try to exit if inside and at exit; else enter house or open dialog
         window.spaceKey.on('down', () => {
-            // Priority: entering house if at house zone
+            if (!window.spaceKey.enabled) return;   // ignore when disabled
+
+            // If inside and standing on the exit zone -> leave
+            if (this.insideHouse && this.exitZone) {
+                const p = new Phaser.Geom.Point(this.player.x, this.player.y);
+                if (Phaser.Geom.Rectangle.ContainsPoint(this.exitZone, p)) {
+                    this.exitHouse();
+                    return;
+                }
+            }
+            // Priority: entering house if at house zone (outside)
             if (this.atHouse && !this.insideHouse) {
                 this.enterHouse();
                 return;
             }
-            if (isCloseToBot() && !window.dialogOpen) openDialog.call(this);
+            if (isCloseToBot() && !window.dialogOpen) {
+                // Open chat as an overlay so Level1 state is preserved
+                this.scene.launch('ChatScene', { returnTo: 'Level1' });
+                this.scene.bringToTop('ChatScene');
+                this.scene.pause();
+            }
             else if (window.dialogOpen) closeDialog.call(this);
         });
-        window.escKey.on('down', () => { if (window.dialogOpen) closeDialog.call(this); });
+         window.escKey.on('down', () => { if (window.dialogOpen) closeDialog.call(this); });
         
         /////////////////////
         //Starting the game//
         /////////////////////
-
-        // Set up cursor keys for player movement
-        this.cursors = this.input.keyboard.createCursorKeys();
-        //checks if player name has been set if not call SetPlayerName and return to this level afterwards
         if (gameState.playerName === ' ' || gameState.playerName === undefined){
+            this.disableLevelKeys();   // <-- disable before opening name scene
+            // also disable the keyboard manager so DOM input gets all key events
+            if (window.keyboardManager) window.keyboardManager.enabled = false;
+            // Launch as an overlay so we can resume this same Level1 instance afterward
+            this.scene.launch('SetPlayerName',{ returnTo: 'Level1' });
+            this.scene.bringToTop('SetPlayerName');
             this.scene.pause();
-            this.scene.start('SetPlayerName',{ returnTo: 'Level1' });
             return;
         }
-
-            
     }
     update() {
          if (!this.player) return;
@@ -586,7 +657,7 @@ class Level1Scene extends Phaser.Scene{
                 this.player.anims.play('idle', true);
             }
 
-            // --- Rolling bot behaviour ---
+            // Rolling bot behaviour patrols between maxX and minX
             if (this.bot) {
                 const bOnGround = this.bot.body.blocked.down || this.bot.body.touching.down;
 
@@ -611,7 +682,7 @@ class Level1Scene extends Phaser.Scene{
 
         }
         // Near-prompt handling
-        // house zone: check player inside rectangle (world coords)
+        // house near-prompt
         const playerPoint = new Phaser.Geom.Point(this.player.x, this.player.y);
         const wasAtHouse = this.atHouse;
         this.atHouse = Phaser.Geom.Rectangle.ContainsPoint(this.houseZone, playerPoint);
@@ -630,53 +701,94 @@ class Level1Scene extends Phaser.Scene{
         }
     }
 }
-///////////////////////
-//////Level2Scene//////
-///////////////////////
-class Level2Scene extends Phaser.Scene{
-    constructor(){
-        super('Level2')
-    }
-    preload(){
-        this.load.image('BG2.1', 'Assets/BackgroundLV2.png');
-        this.load.image('MenuButton', 'Assets/buttons/Menu.png');
-    }
-    create(){
-        if (gameState.playerName === ' ' || gameState.playerName === undefined){
-            this.scene.start('SetPlayerName',{ returnTo: 'Level2' });
-            return;
-        }
-        this.add.image(400, 300, 'BG2.1');
-        this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
-        this.MenuButton.on('pointerdown', () => {this.scene.start('InlevelMenu',{ from: 'Level2' })});
+
+////////////////////////
+//////AI Chat Scene/////
+//////////////////////// 
+class ChatScene extends Phaser.Scene {
+  constructor() {
+    super("ChatScene");
+  }
+  preload() {
+        this.load.image('ChatBackground', 'Assets/main menu/Background.png');
+  }
+
+  create() {
+        // Background (covers the paused level)
+        this.add.image(400, 300, 'ChatBackground').setDepth(0);
+        // Darken slightly so text is readable
+        const overlayOpacity = (typeof gameState.Opacity === 'number') ? gameState.Opacity : 0.7;
+        const overlay = this.add.graphics().setDepth(1);
+        overlay.fillStyle(0x000000, overlayOpacity);
+        overlay.fillRect(0, 0, 800, 600);
+
+    // Text window
+    this.textWindow = this.add.text(40, 40, "Hello Traveler who are you and what do you want?", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#ffffff",
+      wordWrap: { width: 720 }
+        }).setDepth(2);
+
+    // Button 1
+    const btn1 = this.add.text(40, 140, "Hello", {
+      fontFamily: "Arial",
+      fontSize: "24px",
+      backgroundColor: "#008000",
+      padding: { x: 12, y: 6 }
+    })
+      .setInteractive({ useHandCursor: true })
+            .setDepth(2)
+      .on("pointerup", () => this.onButton("Hello I am " + gameState.playerName));
+    
+      // Button 2
+    const btn2 = this.add.text(40, 180, "Can you help me open that gate", {
+      fontFamily: "Arial",
+      fontSize: "24px",
+      backgroundColor: "#008000",
+      padding: { x: 12, y: 6 }
+    })
+      .setInteractive({ useHandCursor: true })
+            .setDepth(2)
+      .on("pointerup", () => this.onButton("Tell the player: " + gameState.playerName 
+        +" that there is a key nearby and it will open the gate tell them to maybe check houses"));
+    
+    // Exit Button
+    const btn3 = this.add.text(40 , 220, "Goodbye", {
+      fontFamily: "Arial",
+      fontSize: "24px",
+      backgroundColor: "#800000",
+      padding: { x: 12, y: 6 }
+    })
+      .setInteractive({ useHandCursor: true })
+            .setDepth(2)
+      .on("pointerup", () => {
+                const returnTo = this.scene.settings.data?.returnTo || 'Level1';
+                // Close chat and return to the existing paused scene (doesn't not start a fresh instance)
+                this.scene.stop('ChatScene');
+                if (this.scene.isPaused(returnTo)) {
+                    this.scene.resume(returnTo);
+                    this.scene.bringToTop(returnTo);
+                    return;
+                }
+                if (this.scene.isActive(returnTo)) {
+                    this.scene.bringToTop(returnTo);
+                    return;
+                }
+                // If the target scene isn't running, go back to main menu.
+                this.scene.start('MainMenu');
+      });
+  
     }
 
+  async onButton(message) {
+    this.textWindow.setText(" ");
 
+    const prompt =  message;
+    const reply = await askOpenAI(prompt);
 
-}
-///////////////////////
-//////Level3Scene//////
-///////////////////////
-class Level3Scene extends Phaser.Scene{
-    constructor(){
-        super('Level3')
-    }
-    preload(){
-        this.load.image('BG3.1', 'Assets/BackgroundLV3.png');
-        this.load.image('MenuButton', 'Assets/buttons/Menu.png');
-    }
-    create(){
-        if (gameState.playerName === ' ' || gameState.playerName === undefined){
-            this.scene.start('SetPlayerName',{ returnTo: 'Level3' });
-            return;
-        }
-        this.add.image(400, 300, 'BG3.1');
-        this.MenuButton = this.add.image(775, 575, 'MenuButton').setInteractive();
-        this.MenuButton.on('pointerdown', () => {this.scene.start('InlevelMenu',{ from: 'Level3' })});
-    }
-
-
-
+    this.textWindow.setText(reply);
+  }
 }
 ///////////////////////
 /////////CONFIG////////
@@ -685,8 +797,11 @@ var config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    scene: [MainMenuScene, OptionsMenuScene, SetPlayerNameScene, SetOpacityScene, Level1Scene, Level2Scene, Level3Scene, InLevelMenuScene],
+    scene: [MainMenuScene, OptionsMenuScene, SetPlayerNameScene, 
+        SetOpacityScene, Level1Scene,
+        InLevelMenuScene,ChatScene],
     parent: 'game',
+    
     physics: {
     default: 'arcade',
     arcade: {
